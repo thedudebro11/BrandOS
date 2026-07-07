@@ -1,0 +1,6 @@
+
+# Local workspace evidence/assets - do not commit large files
+workspaces/Fatletic/*
+!workspaces/Fatletic/README.md
+!workspaces/Fatletic/workspace.json
+

@@ -1,0 +1,37 @@
+{
+  "id": "fatletic",
+  "name": "Fatletic",
+  "type": "brand",
+  "status": "active",
+  "created": "2024-09",
+  "primaryUseCase": "trademark_evidence_and_brand_archive",
+  "knownFirstUseTarget": "2024-10",
+  "modules": {
+    "assetManagement": true,
+    "trademark": true,
+    "copyright": true,
+    "obsidian": true,
+    "instagram": true,
+    "printful": true,
+    "caseBuilder": true,
+    "priorityOfUseDossier": true,
+    "trademarkReadinessReport": true
+  },
+  "importantMarks": {
+    "primaryMark": "FATLETIC",
+    "relatedOrConflictingMarks": ["FATLETE"]
+  },
+  "evidenceTypes": [
+    "logos",
+    "design_source_files",
+    "product_mockups",
+    "printful_orders",
+    "shipments",
+    "instagram_posts",
+    "customer_photos",
+    "customer_videos",
+    "marketing_materials",
+    "sales_records",
+    "trademark_research"
+  ]
+}
