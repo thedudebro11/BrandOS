@@ -1,7 +1,7 @@
 # File Scanner
 
 ## Requirements
-- Recursively scan the selected FATLETIC directory.
+- Recursively scan the selected workspace's evidence directory.
 - Record every file and folder.
 - Capture path, filename, extension, size, created date, modified date, accessed date if available.
 - Detect hidden files.

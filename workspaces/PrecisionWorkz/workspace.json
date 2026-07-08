@@ -1,0 +1,30 @@
+{
+  "id": "precisionworkz",
+  "name": "Precision Workz",
+  "type": "brand",
+  "status": "planned",
+  "created": "2026-07",
+  "primaryUseCase": "brand_archive_and_evidence_vault",
+  "modules": {
+    "assetManagement": false,
+    "trademark": false,
+    "copyright": false,
+    "obsidian": false,
+    "instagram": false,
+    "printful": false,
+    "caseBuilder": false,
+    "priorityOfUseDossier": false,
+    "trademarkReadinessReport": false
+  },
+  "paths": {
+    "obsidianVault": "06_Obsidian",
+    "exports": ".brandos/exports",
+    "reviewQueue": ".brandos/review-queue"
+  },
+  "importantMarks": {
+    "primaryMark": null,
+    "relatedOrConflictingMarks": []
+  },
+  "evidenceTypes": [],
+  "caseTypes": []
+}

@@ -1,6 +1,37 @@
+# Environment and secrets
+.env
+.env.local
+*.env
 
-# Local workspace evidence/assets - do not commit large files
-workspaces/Fatletic/*
-!workspaces/Fatletic/README.md
-!workspaces/Fatletic/workspace.json
+# Logs
+*.log
 
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Dependencies and build artifacts
+node_modules/
+dist/
+build/
+.cache/
+.temp/
+tmp/
+
+# Claude Mind local memory store (generated, machine-local)
+.claude/
+
+# Per-workspace data: every workspace folder is ignored by default except
+# its config and docs. This covers raw evidence, per-workspace databases/
+# caches (.brandos/), and generated archives/vaults (<id>_Archive/,
+# 06_Obsidian/ or whatever a workspace's paths.obsidianVault is) uniformly,
+# for every workspace, not just Fatletic.
+workspaces/*/*
+!workspaces/*/README.md
+!workspaces/*/workspace.json
+
+# Top-level generated output (repo root)
+/backups/*
+/exports/*
+!/backups/.gitkeep
+!/exports/.gitkeep

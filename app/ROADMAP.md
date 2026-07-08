@@ -1,28 +1,13 @@
 # Roadmap
 
-## MVP
-- Local app or CLI.
-- Directory scanner.
-- Hash manifest.
-- Metadata extraction.
-- Classification tags.
-- Human review queue.
-- Dashboard summary.
-- Trademark readiness report draft.
+MVP and v1 scope are defined by `app/docs/IMPLEMENTATION_PLAN.md` (Phases 2–8), which supersedes the version of this roadmap written for a single-workspace, Fatletic-only build.
 
-## v1
-- Relationship graph.
-- Timeline engine.
-- Evidence scoring.
-- Duplicate detection.
-- Instagram archive import.
-- Printful order import.
-- PDF/CSV/JSON exports.
+Multi-workspace support is no longer a roadmap item — it is core BrandOS architecture from Phase 2 onward, not a future enhancement.
 
-## v2
+## Beyond v1 (exploratory, not scheduled)
 - OCR for images and screenshots.
 - AI-assisted descriptions.
-- Near-duplicate image clustering.
+- Advanced near-duplicate image clustering (a basic perceptual-hash pass is already pulled into `IMPLEMENTATION_PLAN.md` Phase 4).
 - Logo evolution builder.
 - Customer proof module.
-- Multi-brand support.
+- Portfolio-level dashboard across multiple workspaces at once (see `ARCHITECTURE_DECISIONS.md` ADR-001 consequences).

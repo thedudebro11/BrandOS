@@ -1,25 +1,5 @@
 # Instagram Archive
 
-## Inputs
-- Instagram data download ZIP
-- Manual screenshots
-- Downloaded reels/photos
-- Caption exports
+Relocated. This is an **importer plugin spec**, not a core platform spec — it applies only to workspaces with `modules.instagram = true`, not every workspace BrandOS supports.
 
-## Extract
-- Post date
-- Caption
-- Media file
-- Hashtags
-- Visible brand name
-- Product shown
-- Customer/user shown if applicable
-- Engagement stats if available
-
-## Outputs
-- Instagram_Post_Index.csv
-- Social_Media_Timeline.md
-- Public_Use_Evidence.md
-
-## Important
-Screenshots should be preserved, but original platform exports are stronger when available.
+See: `app/specs/plugins/importer-instagram.md`

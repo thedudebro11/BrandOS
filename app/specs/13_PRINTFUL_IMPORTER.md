@@ -1,24 +1,5 @@
 # Printful Importer
 
-## Inputs
-- Printful order exports
-- Invoices
-- Packing slips
-- Product mockups
-- Shipping records
-- Emails/screenshots
+Relocated. This is an **importer plugin spec**, not a core platform spec — it applies only to workspaces with `modules.printful = true`, not every workspace BrandOS supports.
 
-## Extract
-- Order number
-- Order date
-- Product title
-- Design/artwork used
-- Shipping date
-- Delivery date
-- Recipient/customer if available
-- Amount paid if available
-
-## Outputs
-- Printful_Order_Index.csv
-- Sales_Timeline.md
-- First_Commercial_Use.md
+See: `app/specs/plugins/importer-printful.md`

@@ -1,26 +1,15 @@
 # Classification Engine
 
-## Asset Categories
-- Logo
-- Logo revision
-- Finished artwork
+## Core Baseline Categories
+Every workspace gets these regardless of type or active modules:
+- Document
+- Image
+- Video
 - Design source file
-- Mockup
-- Product photo
-- Customer photo
-- Customer testimonial
-- Instagram post
-- Instagram reel
-- Printful order
-- Receipt/invoice
-- Shipping proof
-- Website proof
-- Marketing material
-- Packaging
-- Sticker
-- Trademark/legal
-- Business document
 - Unknown
+
+## Extended Categories (plugin-provided)
+Brand-type workspaces with `modules.assetManagement` active additionally get the apparel/brand category set (Logo, Mockup, Customer photo, Printful order, etc.) via the `classifier-apparel-brand` plugin — see `app/specs/plugins/classifier-apparel-brand.md`. A different workspace type can supply its own classifier plugin with a different category set; the Classification Engine itself only defines the confidence mechanism below, not a fixed category list.
 
 ## Confidence Scores
 - 100: directly proven by metadata or document text
