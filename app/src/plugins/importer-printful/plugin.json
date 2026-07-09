@@ -1,0 +1,10 @@
+{
+  "id": "importer-printful",
+  "name": "Printful Export Importer",
+  "version": "0.1.0",
+  "type": "Importer",
+  "description": "Imports orders, shipments, and product data from a Printful data export. Extraction is not implemented — see BLOCKED.md. Registration, activation, configuration, and loader integration are complete and real.",
+  "capabilities": ["registered"],
+  "activatesOn": ["printful"],
+  "engineCompatibility": "1.0.0"
+}

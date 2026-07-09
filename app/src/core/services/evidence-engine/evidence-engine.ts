@@ -1,5 +1,6 @@
 import type { WorkspaceDatabase } from "../../db/connection";
 import {
+  clearEvidenceGaps,
   listClassifications,
   recordEvidenceAssessment,
   recordEvidenceGap,
@@ -20,6 +21,7 @@ function statusForScore(score: number): EvidenceStatus {
  * assessment and not an inflated one.
  */
 export function assessWorkspaceEvidence(db: WorkspaceDatabase): void {
+  clearEvidenceGaps(db, "workspace", null); // re-detected fresh below — see clearEvidenceGaps' doc comment
   assessCompleteness(db);
   assessContinuousUse(db);
   assessPriorityOfUse(db);

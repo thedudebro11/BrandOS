@@ -12,10 +12,20 @@ import type {
   CaseSummary,
   CaseTemplate,
   DuplicateGroup,
+  EvidenceTraceStep,
+  GraphData,
+  GraphEdge,
+  GraphNode,
+  GraphNodeType,
+  NodeDetail,
   OverviewData,
+  PathKind,
+  PathResult,
   PriorityOfUseData,
   ReviewQueueEntry,
   SearchResult,
+  TimelineEntry,
+  TimelineExplorerData,
   WorkspaceSummary,
 } from "../../shared-types";
 
@@ -30,10 +40,20 @@ export type {
   CaseSummary,
   CaseTemplate,
   DuplicateGroup,
+  EvidenceTraceStep,
+  GraphData,
+  GraphEdge,
+  GraphNode,
+  GraphNodeType,
+  NodeDetail,
   OverviewData,
+  PathKind,
+  PathResult,
   PriorityOfUseData,
   ReviewQueueEntry,
   SearchResult,
+  TimelineEntry,
+  TimelineExplorerData,
   WorkspaceSummary,
 };
 
@@ -73,4 +93,16 @@ export const api = {
       `${BASE}/workspaces/${id}/assets?${new URLSearchParams(params).toString()}`
     ),
   search: (id: string, q: string) => getJson<{ results: SearchResult[] }>(`${BASE}/workspaces/${id}/search?q=${encodeURIComponent(q)}`),
+  graph: (id: string) => getJson<GraphData>(`${BASE}/workspaces/${id}/graph`),
+  graphNode: (id: string, type: GraphNodeType, nodeId: number) => getJson<NodeDetail>(`${BASE}/workspaces/${id}/graph/node/${type}/${nodeId}`),
+  graphNeighbors: (id: string, type: GraphNodeType, nodeId: number) =>
+    getJson<{ neighbors: { node: GraphNode; edge: unknown }[] }>(`${BASE}/workspaces/${id}/graph/neighbors/${type}/${nodeId}`),
+  graphPath: (id: string, from: { type: GraphNodeType; id: number }, to: { type: GraphNodeType; id: number }, kind: PathKind) =>
+    getJson<PathResult>(
+      `${BASE}/workspaces/${id}/graph/path?fromType=${from.type}&fromId=${from.id}&toType=${to.type}&toId=${to.id}&kind=${kind}`
+    ),
+  evidencePath: (id: string, type: GraphNodeType, nodeId: number) =>
+    getJson<{ steps: EvidenceTraceStep[] }>(`${BASE}/workspaces/${id}/graph/evidence-path/${type}/${nodeId}`),
+  timeline: (id: string, params: Record<string, string> = {}) =>
+    getJson<TimelineExplorerData>(`${BASE}/workspaces/${id}/timeline?${new URLSearchParams(params).toString()}`),
 };

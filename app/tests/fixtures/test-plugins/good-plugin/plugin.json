@@ -1,0 +1,10 @@
+{
+  "id": "good-plugin",
+  "name": "Good Test Plugin",
+  "version": "1.0.0",
+  "type": "Importer",
+  "description": "A trivial, always-succeeding Importer plugin used to test the plugin runtime itself.",
+  "capabilities": ["discover"],
+  "activatesOn": [],
+  "engineCompatibility": "1.0.0"
+}

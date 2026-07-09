@@ -9,6 +9,9 @@ import { AssetDetail } from "./pages/AssetDetail";
 import { ReviewQueue } from "./pages/ReviewQueue";
 import { Duplicates } from "./pages/Duplicates";
 import { AssetsExplorer } from "./pages/AssetsExplorer";
+import { KnowledgeGraph } from "./pages/KnowledgeGraph";
+import { TimelineExplorer } from "./pages/TimelineExplorer";
+import { EvidencePathExplorer } from "./pages/EvidencePathExplorer";
 import { api, type WorkspaceSummary } from "./api";
 
 function WorkspacePicker() {
@@ -55,6 +58,9 @@ export function App() {
           <Route path="assets/:assetId" element={<AssetDetail />} />
           <Route path="review-queue" element={<ReviewQueue />} />
           <Route path="duplicates" element={<Duplicates />} />
+          <Route path="graph" element={<KnowledgeGraph />} />
+          <Route path="timeline" element={<TimelineExplorer />} />
+          <Route path="evidence-path" element={<EvidencePathExplorer />} />
         </Route>
       </Routes>
     </BrowserRouter>

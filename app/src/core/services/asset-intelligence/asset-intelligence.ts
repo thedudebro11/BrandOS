@@ -1,9 +1,9 @@
 import type { WorkspaceDatabase } from "../../db/connection";
 import { findAssetByAssetId } from "../../db/repositories";
-import { getAssetTags, getClassification, listAssetNotes } from "../../db/knowledge-repositories";
+import { getAssetTags, getClassification, getResolvedDate, listAssetNotes } from "../../db/knowledge-repositories";
 import { getProvenanceChain } from "../provenance-engine/provenance-engine";
 import { CaseBuilderService } from "../case-builder/case-builder-service";
-import type { AssetRecord, AssetTagRecord, ClassificationRecord, MetadataRecord, ProvenanceStep } from "../../types";
+import type { AssetRecord, AssetTagRecord, ClassificationRecord, MetadataRecord, ProvenanceStep, ResolvedDateRecord } from "../../types";
 
 export interface AssetIntelligenceView {
   asset: AssetRecord;
@@ -11,7 +11,10 @@ export interface AssetIntelligenceView {
   classification: ClassificationRecord | undefined;
   tags: AssetTagRecord[];
   relationships: { direction: "outgoing" | "incoming"; otherAssetId: number; type: string; confidence: number }[];
+  /** Raw, unfiltered event log — every candidate timestamp, kept for transparency. Do NOT treat as "the" date; see resolvedDate. */
   timelineEvents: { id: number; eventType: string; eventDate: string; title: string; confidence: number }[];
+  /** The engine's actual answer to "when did this happen" — priority-ranked among plausible candidates, with full reasoning (Phase 3.5). This is what should be shown as *the* date, not timelineEvents[0]. */
+  resolvedDate: ResolvedDateRecord | undefined;
   provenance: ProvenanceStep[];
   linkedCases: { id: number; title: string; caseType: string }[];
   notes: { note: string; author: string; createdAt: string }[];
@@ -76,6 +79,7 @@ export function getAssetIntelligence(db: WorkspaceDatabase, assetId: string): As
     tags: getAssetTags(db, asset.id),
     relationships,
     timelineEvents,
+    resolvedDate: getResolvedDate(db, asset.id),
     provenance: getProvenanceChain(db, asset.id),
     linkedCases,
     notes: listAssetNotes(db, asset.id),

@@ -1,0 +1,10 @@
+{
+  "id": "importer-zip-archive",
+  "name": "ZIP Archive Importer",
+  "version": "1.0.0",
+  "type": "Importer",
+  "description": "Imports evidence from a ZIP archive already present in the workspace's evidence tree. Extracts read-only to a guarded scratch directory, discovers entries through the same reference logic as the Generic Folder Importer, and never moves, renames, or modifies the original ZIP.",
+  "capabilities": ["discover", "incremental", "idempotent"],
+  "activatesOn": [],
+  "engineCompatibility": "1.0.0"
+}

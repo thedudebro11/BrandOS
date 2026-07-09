@@ -29,12 +29,17 @@ export interface BrandOSEvents {
   "tags.assigned": { workspaceId: string; assetId: string; count: number };
   "evidence.assessed": { workspaceId: string; dimension: string; score: number };
   "integrity.issue_found": { workspaceId: string; issueType: string; severity: string };
-  /** Producer wired in Phase 6 (Case Builder reports); the CaseBuilderService itself exists from Phase 3. */
+  /** Producer wired in a future Case Builder reports phase; the CaseBuilderService itself exists from Phase 3. */
   "case.updated": { workspaceId: string; caseId: number };
   /** Foundation only in Phase 2 — no producer/consumer wired yet. */
   "dashboard.refresh.requested": { workspaceId: string };
   /** Foundation only in Phase 2 — no producer/consumer wired yet. */
   "obsidian.update.requested": { workspaceId: string };
+  /** Phase 7: the plugin-runtime/import-pipeline event set. */
+  "import.started": { workspaceId: string; pluginId: string; sourceLabel: string; importRunId: number };
+  "import.completed": { workspaceId: string; pluginId: string; importRunId: number; status: "completed" | "failed" };
+  "plugin.loaded": { workspaceId: string; pluginId: string };
+  "plugin.failed": { workspaceId: string; pluginId: string; message: string };
   log: { level: LogLevel; event: string; message: string; details?: unknown };
 }
 

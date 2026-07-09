@@ -1,0 +1,10 @@
+{
+  "id": "incompatible-plugin",
+  "name": "Incompatible Test Plugin",
+  "version": "1.0.0",
+  "type": "Importer",
+  "description": "A plugin manifest requiring an engine version that will never be satisfied, used to test compatibility checking.",
+  "capabilities": [],
+  "activatesOn": [],
+  "engineCompatibility": "99.0.0"
+}

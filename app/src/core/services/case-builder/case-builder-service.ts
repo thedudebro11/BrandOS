@@ -49,6 +49,11 @@ export class CaseBuilderService {
     this.link(caseId, "timeline_event", timelineEventId, note);
   }
 
+  /** Phase 8: cases can reference generated reports — case_links.linked_type "report" has existed since Phase 3's schema; this is the first phase to actually produce report rows to link. linkedId is a `reports.id`. */
+  linkReport(caseId: number, reportId: number, note?: string): void {
+    this.link(caseId, "report", reportId, note);
+  }
+
   private link(caseId: number, type: CaseLinkedType, id: number, note?: string): void {
     if (!this.get(caseId)) throw new Error(`Case ${caseId} does not exist`);
     linkToCase(this.db, caseId, type, id, note ?? null);

@@ -27,6 +27,15 @@ export function Sidebar({ workspaceName, workspaceId }: { workspaceName: string;
       <NavLink to={`${base}/duplicates`} className={link}>
         Duplicates
       </NavLink>
+      <NavLink to={`${base}/graph`} className={link}>
+        Knowledge Graph
+      </NavLink>
+      <NavLink to={`${base}/timeline`} className={link}>
+        Timeline Explorer
+      </NavLink>
+      <NavLink to={`${base}/evidence-path`} className={link}>
+        Evidence Path
+      </NavLink>
       <div style={{ marginTop: "auto", padding: "8px 10px" }}>
         <span className="muted" style={{ fontSize: 11 }}>
           Press <span className="kbd">⌘K</span> to search

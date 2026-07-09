@@ -2,6 +2,13 @@ import { Router } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { getDb, getLoadedWorkspace, WORKSPACES_ROOT } from "./db-cache";
+import { WorkspaceFs } from "../core/fs/workspace-fs";
+import { buildGraph, getNeighbors } from "../core/services/graph-engine/graph-engine";
+import { findPath, type PathKind } from "../core/services/graph-engine/path-discovery";
+import { traceEvidencePath } from "../core/services/graph-engine/evidence-path";
+import { getNodeDetail } from "../core/services/graph-engine/node-inspector";
+import { getTimelineExplorerData } from "../core/services/timeline-explorer/timeline-explorer";
+import type { GraphNodeType } from "../core/types";
 import { discoverWorkspaces } from "../core/workspace/workspace-registry";
 import { computeEvidenceQualityMetrics, bandLabel } from "../core/services/evidence-quality-metrics/evidence-quality-metrics";
 import {
@@ -9,9 +16,7 @@ import {
   listEvidenceGaps,
   listCaseTemplates,
   listCases,
-  getCase,
   listCaseLinks,
-  listRelatedCases,
   listOpenReviewQueue,
 } from "../core/db/knowledge-repositories";
 import { CaseBuilderService } from "../core/services/case-builder/case-builder-service";
@@ -20,6 +25,7 @@ import { QueryEngine } from "../core/services/query-engine/query-engine";
 import { search } from "../core/services/search-engine/search-engine";
 import { findAssetByAssetId } from "../core/db/repositories";
 import { getActivityFeed } from "../core/services/activity-feed-engine/activity-feed-engine";
+import { composeCaseDetail } from "../core/services/case-builder/case-detail-composer";
 import type {
   ActionItem,
   ActivityEvent,
@@ -243,35 +249,13 @@ router.post("/workspaces/:id/cases", async (req, res) => {
 router.get("/workspaces/:id/cases/:caseId", async (req, res) => {
   const db = await getDb(req.params.id);
   const caseId = Number(req.params.caseId);
-  const theCase = getCase(db, caseId);
-  if (!theCase) return res.status(404).json({ error: "Case not found" });
-
-  const service = new CaseBuilderService(db);
-  service.recomputeEvidenceStrength(caseId);
+  const composed = composeCaseDetail(db, caseId);
+  if (!composed) return res.status(404).json({ error: "Case not found" });
   db.save();
 
-  const links = listCaseLinks(db, caseId);
+  const { theCase, links, supportingAssets, timeline, conflicts, missingEvidence, evidenceStrength, relatedCases: relatedCasesRaw } = composed;
   const assetLinks = links.filter((l) => l.linkedType === "asset");
   const timelineLinks = links.filter((l) => l.linkedType === "timeline_event");
-
-  const supportingAssets = assetLinks
-    .map((l) => {
-      const asset = db.get<{ asset_id: string }>("SELECT asset_id FROM assets WHERE id = ?", [l.linkedId]);
-      return asset ? getAssetIntelligence(db, asset.asset_id) : null;
-    })
-    .filter((a): a is NonNullable<typeof a> => !!a);
-
-  const timeline = timelineLinks
-    .map((l) => db.get("SELECT * FROM timeline_events WHERE id = ?", [l.linkedId]))
-    .filter(Boolean) as Record<string, unknown>[];
-
-  const conflicts = supportingAssets.filter((a) =>
-    db.get("SELECT 1 as x FROM resolved_dates WHERE asset_id = ? AND reasoning LIKE '%conflict%'", [a.asset.id])
-  );
-
-  const missingEvidence = db.all("SELECT * FROM case_missing_evidence WHERE case_id = ?", [caseId]) as Record<string, unknown>[];
-  const evidenceStrength = latestEvidenceAssessments(db, "case", caseId).find((a) => a.dimension === "strength");
-  const relatedCasesRaw = listRelatedCases(db, caseId);
   const relatedCases: CaseSummary[] = relatedCasesRaw.map((c) => ({ ...c, evidenceStrength: null, linkCount: 0 }));
 
   const response: CaseDetail = {
@@ -385,6 +369,68 @@ router.get("/asset-by-string-id/:workspaceId/:assetId", async (req, res) => {
   const db = await getDb(req.params.workspaceId);
   const asset = findAssetByAssetId(db, req.params.assetId);
   res.json({ asset: asset ?? null });
+});
+
+// ---- knowledge graph (Phase 9) ----
+// Every handler below is a thin pass-through to graph-engine.ts /
+// path-discovery.ts / node-inspector.ts / timeline-explorer.ts — no graph
+// logic lives here, per Phase 9 Section "the visual layer must expose
+// existing engine data, it must never implement its own logic," the same
+// hard rule ADR-011 has held every dashboard route to since Phase 4.
+
+router.get("/workspaces/:id/graph", async (req, res) => {
+  const db = await getDb(req.params.id);
+  res.json(buildGraph(db));
+});
+
+router.get("/workspaces/:id/graph/node/:type/:nodeId", async (req, res) => {
+  const db = await getDb(req.params.id);
+  const workspace = getLoadedWorkspace(req.params.id)!;
+  const wfs = new WorkspaceFs(workspace);
+  const detail = getNodeDetail(db, wfs, req.params.type as GraphNodeType, Number(req.params.nodeId));
+  if (!detail) return res.status(404).json({ error: "Node not found" });
+  res.json(detail);
+});
+
+router.get("/workspaces/:id/graph/neighbors/:type/:nodeId", async (req, res) => {
+  const db = await getDb(req.params.id);
+  const neighbors = getNeighbors(db, req.params.type as GraphNodeType, Number(req.params.nodeId));
+  res.json({ neighbors });
+});
+
+router.get("/workspaces/:id/graph/path", async (req, res) => {
+  const db = await getDb(req.params.id);
+  const { fromType, fromId, toType, toId, kind } = req.query as Record<string, string>;
+  if (!fromType || !fromId || !toType || !toId) {
+    return res.status(400).json({ error: "fromType, fromId, toType, toId are required" });
+  }
+  const result = findPath(
+    db,
+    (kind as PathKind) ?? "shortest",
+    { type: fromType as GraphNodeType, id: Number(fromId) },
+    { type: toType as GraphNodeType, id: Number(toId) }
+  );
+  res.json(result);
+});
+
+router.get("/workspaces/:id/graph/evidence-path/:type/:nodeId", async (req, res) => {
+  const db = await getDb(req.params.id);
+  const steps = traceEvidencePath(db, { type: req.params.type as GraphNodeType, id: Number(req.params.nodeId) });
+  res.json({ steps });
+});
+
+// ---- timeline explorer (Phase 9) ----
+
+router.get("/workspaces/:id/timeline", async (req, res) => {
+  const db = await getDb(req.params.id);
+  const { category, fromDate, toDate, minConfidence } = req.query as Record<string, string | undefined>;
+  const data = getTimelineExplorerData(db, {
+    category: category || undefined,
+    fromDate: fromDate || undefined,
+    toDate: toDate || undefined,
+    minConfidence: minConfidence ? Number(minConfidence) : undefined,
+  });
+  res.json(data);
 });
 
 export default router;

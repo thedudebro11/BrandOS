@@ -464,3 +464,135 @@ code,
   border: 1px dashed var(--border);
   border-radius: var(--radius-lg);
 }
+
+/* Phase 9 — Knowledge Graph, Timeline Explorer, Evidence Path Explorer.
+   Same instrument-panel language as the rest of Mission Control: dense,
+   dark, minimal motion, IBM Plex throughout. */
+
+.graph-page-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  height: calc(100vh - 100px);
+}
+
+.graph-canvas {
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.graph-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.graph-toolbar input[type="text"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 6px 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  min-width: 200px;
+}
+
+.graph-toolbar input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-chip.active {
+  border-color: var(--accent-dim);
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.filter-chip .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.inspector-panel {
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 16px;
+}
+
+.inspector-panel h3 {
+  margin-top: 0;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.inspector-field {
+  margin-bottom: 14px;
+}
+
+.inspector-field-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.timeline-explorer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-explorer-group-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding: 8px 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  z-index: 1;
+}
+
+.evidence-path-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 6px;
+}
+
+.evidence-path-arrow {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 14px;
+  margin: 2px 0;
+}

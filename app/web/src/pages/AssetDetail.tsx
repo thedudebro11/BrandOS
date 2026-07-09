@@ -81,7 +81,34 @@ export function AssetDetail() {
       </div>
 
       <div className="section">
-        <h3 className="section-title">Timeline</h3>
+        <h3 className="section-title">Resolved Date</h3>
+        <div className="card">
+          {data.resolvedDate ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span className="mono" style={{ fontSize: 18, fontWeight: 600 }}>
+                  {data.resolvedDate.resolvedDate.slice(0, 10)}
+                </span>
+                <span className="pill">{data.resolvedDate.sourceType}</span>
+                <span className="muted mono" style={{ fontSize: 11 }}>
+                  confidence {data.resolvedDate.confidence}/100
+                </span>
+              </div>
+              <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
+                {data.resolvedDate.reasoning}
+              </p>
+            </>
+          ) : (
+            <p className="muted">No plausible date could be resolved from any evidence source.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
+        <h3 className="section-title">Raw Candidate Events</h3>
+        <p className="muted" style={{ fontSize: 11, marginBottom: 8 }}>
+          Every timestamp BrandOS found, unfiltered — see Resolved Date above for the engine's actual answer, not this list.
+        </p>
         {data.timelineEvents.length === 0 ? (
           <div className="empty-state">No timeline events for this asset.</div>
         ) : (

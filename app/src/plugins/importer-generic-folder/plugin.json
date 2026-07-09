@@ -1,0 +1,10 @@
+{
+  "id": "importer-generic-folder",
+  "name": "Generic Folder Importer",
+  "version": "1.0.0",
+  "type": "Importer",
+  "description": "Recursively discovers every file in a workspace's evidence tree. The reference Importer implementation every other importer plugin follows.",
+  "capabilities": ["discover", "incremental", "idempotent"],
+  "activatesOn": [],
+  "engineCompatibility": "1.0.0"
+}

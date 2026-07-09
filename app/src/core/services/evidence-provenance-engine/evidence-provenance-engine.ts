@@ -1,5 +1,6 @@
 import type { WorkspaceDatabase } from "../../db/connection";
 import { getResolvedDate } from "../../db/knowledge-repositories";
+import type { AssetIntelligenceView } from "../asset-intelligence/asset-intelligence";
 
 export interface ProvenanceChainLink {
   layer: string; // e.g. "Resolved Date", "Candidate Date", "Source Asset", "SHA-256 Hash", "Workspace"
@@ -85,4 +86,19 @@ export function traceResolvedDateProvenance(db: WorkspaceDatabase, assetId: numb
   }
 
   return chain;
+}
+
+/**
+ * Which of the given assets' resolved dates carry a documented conflict —
+ * the exact check the Phase 4.5 Case Detail API route uses (a resolved
+ * date's reasoning mentioning "conflict", set when the timeline resolution
+ * engine found multiple plausible-but-disagreeing candidates). Extracted
+ * here so the API route and Phase 8's report generators call the same
+ * function instead of each re-implementing the same one-line filter
+ * (ARCHITECTURE_PRINCIPLES.md "no duplicate logic").
+ */
+export function findConflictingAssets(db: WorkspaceDatabase, assets: AssetIntelligenceView[]): AssetIntelligenceView[] {
+  return assets.filter(
+    (a) => db.get("SELECT 1 as x FROM resolved_dates WHERE asset_id = ? AND reasoning LIKE '%conflict%'", [a.asset.id]) !== undefined
+  );
 }

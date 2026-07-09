@@ -1,0 +1,10 @@
+{
+  "id": "importer-instagram",
+  "name": "Instagram Export Importer",
+  "version": "0.1.0",
+  "type": "Importer",
+  "description": "Imports posts and media from an Instagram data export. Extraction is not implemented — see BLOCKED.md. Registration, activation, configuration, and loader integration are complete and real.",
+  "capabilities": ["registered"],
+  "activatesOn": ["instagram"],
+  "engineCompatibility": "1.0.0"
+}

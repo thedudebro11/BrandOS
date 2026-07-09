@@ -1,0 +1,10 @@
+{
+  "id": "broken-plugin",
+  "name": "Broken Test Plugin",
+  "version": "1.0.0",
+  "type": "Importer",
+  "description": "An Importer plugin whose discover() always throws, used to test error isolation and health tracking.",
+  "capabilities": ["discover"],
+  "activatesOn": [],
+  "engineCompatibility": "1.0.0"
+}

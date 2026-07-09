@@ -69,10 +69,13 @@ describe("knowledge validation engine", () => {
 
   it("persists results to knowledge_validation_runs", async () => {
     const ws = makeFixtureWorkspace({ id: "validate-fixture-persist" });
+    // Phase 7: runScan() itself now runs a Validation pipeline stage (one
+    // validateKnowledge() call), so the explicit call below is the second —
+    // rows.length is 2x results.length, not 1x.
     const { db } = await runScan(ws, "manual");
     const results = validateKnowledge(db);
     const rows = db.all("SELECT * FROM knowledge_validation_runs");
-    expect(rows.length).toBe(results.length);
+    expect(rows.length).toBe(results.length * 2);
     db.close();
     cleanupWorkspace(ws);
   });

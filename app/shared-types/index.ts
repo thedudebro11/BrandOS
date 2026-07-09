@@ -118,7 +118,12 @@ export interface AssetIntelligence {
   classification: { category: string; confidence: number; reason: string; needsReview: number } | undefined;
   tags: { tagName: string; source: string; confidence: number }[];
   relationships: { direction: string; otherAssetId: number; type: string; confidence: number }[];
+  /** Raw, unfiltered event log — every candidate timestamp. Do not display as "the" date; use resolvedDate. */
   timelineEvents: { id: number; eventType: string; eventDate: string; title: string; confidence: number }[];
+  /** The engine's actual answer to "when did this happen" (Phase 3.5) — priority-ranked among plausible candidates only, with reasoning. Undefined if nothing plausible was found. */
+  resolvedDate:
+    | { resolvedDate: string; confidence: number; sourceType: string; reasoning: string }
+    | undefined;
   provenance: { assetId: number; assetLabel: string; relationshipType: string | null; direction: string }[];
   linkedCases: { id: number; title: string; caseType: string }[];
   notes: { note: string; author: string; createdAt: string }[];
@@ -166,4 +171,91 @@ export interface DuplicateGroup {
   groupId: number;
   sha256: string;
   assets: ({ asset_id: string; filename: string; original_path: string } | undefined)[];
+}
+
+// ---- knowledge graph (Phase 9) ----
+
+export type GraphNodeType = "workspace" | "asset" | "case" | "evidence" | "timeline_event" | "tag" | "report" | "obsidian_note" | "plugin";
+
+export interface GraphNode {
+  type: GraphNodeType;
+  id: number;
+  label: string;
+  subtitle?: string;
+}
+
+export interface GraphEdge {
+  fromType: GraphNodeType;
+  fromId: number;
+  toType: GraphNodeType;
+  toId: number;
+  edgeType: string;
+  confidence: number | null;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface NodeDetail {
+  type: GraphNodeType;
+  id: number;
+  label: string;
+  summary: string;
+  assetId?: string;
+  metadata?: { key: string; value: string; source: string; confidence: number }[];
+  timeline?: { id: number; eventType: string; eventDate: string; title: string; confidence: number }[];
+  relationships?: { direction: string; otherAssetId: number; type: string; confidence: number }[];
+  evidence?: { dimension: string; score: number; status: string; notes: string }[];
+  confidence?: number | null;
+  provenance?: { assetId: number; assetLabel: string; relationshipType: string | null; confidence: number | null; direction: string }[];
+  supportingAssets?: { assetId: string; filename: string }[];
+  cases?: { id: number; title: string }[];
+  reports?: { id: number; reportType: string }[];
+  obsidianNotePath?: string;
+}
+
+export type PathKind = "shortest" | "evidence" | "relationship" | "timeline" | "case" | "dependency";
+
+export interface PathStep {
+  node: GraphNode;
+  viaEdge: GraphEdge | null;
+}
+
+export interface PathResult {
+  kind: PathKind;
+  found: boolean;
+  steps: PathStep[];
+}
+
+export interface EvidenceTraceStep {
+  node: GraphNode;
+  viaEdge: GraphEdge | null;
+  depth: number;
+}
+
+// ---- timeline explorer (Phase 9) ----
+
+export interface TimelineEntry {
+  assetNumericId: number;
+  assetId: string;
+  filename: string;
+  category: string | undefined;
+  resolvedDate: string;
+  confidence: number;
+  sourceType: string;
+  reasoning: string;
+  groupKey: string;
+}
+
+export interface TimelineGroup {
+  key: string;
+  count: number;
+}
+
+export interface TimelineExplorerData {
+  entries: TimelineEntry[];
+  groups: TimelineGroup[];
+  categories: string[];
 }

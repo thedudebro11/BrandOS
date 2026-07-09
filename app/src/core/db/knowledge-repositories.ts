@@ -244,6 +244,25 @@ export function recordEvidenceGap(
   );
 }
 
+/**
+ * Clears every previously-recorded gap for one scope before a fresh
+ * assessment re-detects them — the same delete-then-insert discipline
+ * ADR-010 established for resolved_dates. Without this, repeated
+ * assessWorkspaceEvidence() calls (which every re-run of a report that
+ * needs current gaps now makes) would accumulate duplicate rows forever,
+ * since recordEvidenceGap() is a pure append. Found and fixed in Phase 8,
+ * when report generation became the first caller to re-run assessment
+ * repeatedly enough in one session to make the accumulation visible.
+ */
+export function clearEvidenceGaps(db: WorkspaceDatabase, scopeType: EvidenceScope, scopeId: number | null): void {
+  db.run(
+    scopeId === null
+      ? "DELETE FROM evidence_gaps WHERE scope_type = ? AND scope_id IS NULL"
+      : "DELETE FROM evidence_gaps WHERE scope_type = ? AND scope_id = ?",
+    scopeId === null ? [scopeType] : [scopeType, scopeId]
+  );
+}
+
 export function listEvidenceGaps(db: WorkspaceDatabase, scopeType?: EvidenceScope, scopeId?: number | null): EvidenceGap[] {
   const rows =
     scopeType === undefined

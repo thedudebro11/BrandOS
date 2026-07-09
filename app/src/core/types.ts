@@ -253,12 +253,14 @@ export interface IntegrityIssue {
   description: string;
 }
 
-export type GraphNodeType = "asset" | "case" | "tag" | "timeline_event";
+export type GraphNodeType = "workspace" | "asset" | "case" | "evidence" | "timeline_event" | "tag" | "report" | "obsidian_note" | "plugin";
 
 export interface GraphNode {
   type: GraphNodeType;
   id: number;
   label: string;
+  /** A short, real, already-computed fact for at-a-glance display without a follow-up fetch — e.g. an asset's classification category, a case's status, a report's type. Never invented; omitted when nothing suitable exists. */
+  subtitle?: string;
 }
 
 export interface GraphEdge {
@@ -376,4 +378,34 @@ export interface EvidenceQualityMetricsResult {
   healthScore: number;
   missingEvidenceScore: number;
   conflictingEvidenceScore: number;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: Obsidian vault generation types
+// ---------------------------------------------------------------------------
+
+export type ObsidianEntityType = "asset" | "case" | "workspace" | "index";
+
+export interface ObsidianNoteRecord {
+  id: number;
+  entityType: ObsidianEntityType;
+  entityId: string;
+  vaultPath: string;
+  contentHash: string;
+  lastGeneratedAt: string;
+  hasManualEdits: boolean;
+}
+
+export type NoteWriteOutcome = "created" | "updated" | "skipped_unchanged" | "skipped_manual_edit";
+
+export interface NoteWriteResult {
+  vaultPath: string;
+  outcome: NoteWriteOutcome;
+}
+
+export interface KnowledgeReviewFinding {
+  findingType: "broken_link" | "orphaned_note" | "missing_note" | "missing_backlink" | "stale_content" | "unresolved_reference";
+  severity: "info" | "warning" | "critical";
+  vaultPath: string | null;
+  description: string;
 }

@@ -1,7 +1,7 @@
 {
   "score": 85,
-  "phase": "5",
-  "phaseName": "Platform Consolidation",
+  "phase": "9",
+  "phaseName": "Visual Knowledge Graph & Timeline Explorer",
   "asOf": "2026-07-08",
   "note": "Mirrors the 'Overall Architecture Health Score' (out of 10, shown here as a percentage) from the latest dated section of app/docs/ARCHITECTURE_REVIEW.md. Update this file by hand whenever that document's score changes — kept as a small, honest, manually-synced value rather than a runtime markdown parser."
 }

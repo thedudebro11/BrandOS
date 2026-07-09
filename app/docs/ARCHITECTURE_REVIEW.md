@@ -4,6 +4,326 @@ Living, cumulative document. A new dated section is appended after every complet
 
 ---
 
+## Phase 9 Review — Visual Knowledge Graph & Timeline Explorer (2026-07-08)
+
+### 1. Phase Summary
+The project's first substantial frontend build since Mission Control's original Phase 4, and the first phase to add a UI dependency (`cytoscape`). Explicitly sequenced by the user ahead of AI ("before introducing AI, I want BrandOS users to be able to see and explore the knowledge graph visually"), with ADR-007 Safe Citation Mode folded in as a gating special requirement rather than left for the next phase. Every new capability held to the same hard rule: the visual layer exposes existing engine data, never invents its own.
+
+### 2. What Was Accomplished
+`buildGraph()` extended from 4 to all 9 node types (workspace, evidence, report, obsidian_note, plugin added); one parameterized Path Discovery engine covering 6 kinds; a full-reachability Evidence Path Explorer; a Node Inspector composing every Section 5 field from existing engines; a filterable Timeline Explorer; ADR-007 fully implemented as Safe Citation Mode; three new Mission Control pages; 22 new tests (178 total). Verified against real Fatletic data throughout — 1,061 real nodes, 1,274 real edges, every new API endpoint exercised live.
+
+### 3. Architectural Decisions Made
+ADR-013 (Cytoscape.js for graph rendering) — the only new ADR. ADR-007 transitioned from "approved, not implemented" to "approved and implemented." See `ARCHITECTURE_DECISIONS.md` "Phase 9 Consistency Review" for the full account.
+
+### 4. Technical Debt Introduced
+- No canvas-level viewport virtualization for graphs materially larger than Fatletic's real ~1,000-node scale — progressive disclosure (hub-only default, on-demand expansion) is the real, working mitigation today, not a placeholder, but it is not the same thing as true virtualization and shouldn't be represented as such if a workspace's graph grows an order of magnitude.
+- Knowledge Graph search filters/highlights only among currently-visible (already-expanded) nodes, not the full unexpanded graph — a real, named UX limitation, not a hidden one.
+- No browser-based visual/UI test exists for any of the 3 new pages — consistent with every Mission Control page since Phase 4, not a regression introduced this phase, but also not yet closed.
+
+### 5. Risks Discovered
+- **Safe Citation Mode's redaction-completeness risk (§11 of this section) is the most consequential finding of this phase**, on the same order as Phase 8's own review flagging ADR-007 as unimplemented — a scoped-to-citationIndex redaction dictionary looked correct against 8 of 9 report types and silently under-redacted the ninth (Evidence Binder's Chain of Custody section) until checked against real generated output. Fixed within this phase, but the near-miss is worth naming precisely: "every citation is redacted" and "every real filename anywhere in the document is redacted" are different claims, and only real-data verification distinguished them.
+- The `obsidian_notes` table on the live Fatletic database was found empty at the start of this phase's real-data testing — not a Phase 9 defect (nothing in Phase 9 touches vault generation), but a real, previously-unnoticed gap in this environment's own data hygiene, resolved by regenerating the vault. Worth a standing note: this project's "verify against real Fatletic data" discipline is only as good as that data actually being current, which this phase's own testing had to first confirm rather than assume.
+
+### 6. Assumptions Validated
+- **"The visual layer must expose existing engine data, never implement its own logic" held under real construction pressure, not just as a stated rule** — every one of the 5 new API routes is a direct pass-through, and Path Discovery's 6 "kinds" are genuinely one function with 6 edge filters, not 6 traversal implementations that happened to be built at the same time and could drift apart later.
+- Cytoscape's canvas rendering handled real Fatletic-scale data (1,061 nodes) without a dedicated performance-engineering pass — the progressive-disclosure default (§4) is a UX choice for a legible default view, not a workaround for a rendering performance problem, confirmed by the full unexpanded graph never being rendered in a single view during testing but never observed to struggle when larger subsets were expanded.
+- The report engine's "single generator-agnostic implementation point" design (Phase 8) paid off exactly as intended: ADR-007 was implemented as one new function called from one call site, and none of the 9 existing report generators needed to change.
+
+### 7. Assumptions Invalidated
+- The implicit assumption, carried from Phase 8's own citation-building helpers, that "every real filename a report displays has a corresponding Citation object" was wrong — see §5/§11. Corrected by redesigning Safe Citation Mode's redaction dictionary around the report's actual rendered text rather than its citation list.
+
+### 8. Performance Observations
+Not formally benchmarked (the now-six-consecutive-review gap). Anecdotally: fetching and building the full real Fatletic graph (1,061 nodes, 1,274 edges) completes well within interactive timeframes; the default hub-only rendered view (a small fraction of that) renders without perceptible delay; the 178-test suite runs in ~14 seconds. Frontend bundle size grew from ~198KB to ~660KB (208KB gzipped) with the addition of `cytoscape` — a real, measured, one-time cost stated in `PHASE_9_GRAPH_VALIDATION_REPORT.md` rather than left unmeasured.
+
+### 9. Opportunities for Refactoring
+- None new of significance. `path-discovery.ts` and `evidence-path.ts` share a similar BFS shape but were kept as two small, separate implementations rather than force-unified under time/cost pressure this phase — a candidate for consolidation later, not urgent.
+
+### 10. Future Recommendations
+1. Close the full-graph search limitation (§4) if real usage shows users frequently need to search for a node they haven't yet expanded into view.
+2. Revisit true viewport virtualization once a workspace's real graph size is known to exceed what progressive disclosure comfortably handles — not before, per this project's standing "don't build for a scale that doesn't exist yet" discipline.
+3. Get a real, instrumented performance baseline — now recommended in six consecutive phase reviews. This project should either schedule it concretely in Phase 10 or make a reasoned decision that it's genuinely not needed yet, rather than naming it a seventh time.
+4. Add at least a minimal browser-based smoke test (even a single automated "does the graph page render without throwing" check) before a fourth UI-heavy phase ships with zero visual verification coverage.
+
+### 11. Lessons Learned
+- **Four consecutive phases (6, 7, 8, 9) have now each surfaced a genuine latent gap by building a second real consumer of existing data** — this is no longer an interesting coincidence, it is this project's most reliable verification method, more effective than any unit test written in isolation from real data. Phase 8's review named this the most important process lesson so far; Phase 9 is direct, repeated confirmation of the same finding, and future phases should treat "build against real data, then grep/inspect the actual output" as a required step during development, not just as a final check.
+- Redaction/safety logic is a category where "looks correct" and "is correct" diverge easily — a citation-count-based validation check (Phase 8's `report-validation.ts`) proved every citation existed, but proving *coverage* of what needed hiding required inspecting real rendered text, not just structural properties of the data model. Worth remembering for any future safety/compliance-adjacent feature: structural validation and content verification are different questions.
+- Closing a load-bearing ADR (ADR-007) that had stood open across three consecutive phase reviews, on the same phase that also shipped a large new UI surface, was possible because the special requirement was stated explicitly and first in the phase spec rather than left implicit — worth continuing as a pattern when a phase legitimately needs to bundle "the most important carried-forward debt" with new feature work.
+
+### 12. Questions for Future Phases
+- Should Path Discovery's and Evidence Path Explorer's near-duplicate BFS implementations (§9) be unified now, or is the current small duplication cheap enough to leave until a third caller makes the shared shape obvious? Leaning toward: leave until a third real need appears, consistent with this project's standing "don't abstract before a second real case, let alone a third, justifies it" discipline.
+- Now that the Knowledge Graph and Timeline Explorer (both originally listed as `ROADMAP.md` v2.0 examples) are done, should the roadmap's v2.0 list be treated as an ordered backlog or a flat set of options the user picks from as priorities shift? This phase's own sequencing decision (graph/timeline before AI) suggests the latter — worth confirming explicitly rather than assuming either way.
+
+### 13. Potential Simplifications
+- Path Discovery's 6 edge filters could plausibly collapse `relationship` and `dependency` into one parameterized filter (structural asset↔asset detection) with a `directional: boolean` flag, rather than two separate filter functions with near-identical bodies. Not done this phase — a cheap, low-risk simplification for whoever next touches this file.
+
+### 14. Potential Scalability Concerns
+Carried from Phases 6/7/8 (§14 of each): no report generator or graph engine function has a "changed since last computation" skip mechanism — every graph fetch, path search, and report generation fully recomputes from current data. Fine at Fatletic's real scale (sub-second throughout this phase's testing); worth reconsidering only if a workspace's data volume grows by an order of magnitude, per this project's consistent "measure before optimizing" discipline.
+
+### 15. Overall Architecture Health Score: 8.5/10
+Held from Phase 8, not raised despite this phase closing ADR-007 (a load-bearing, three-phases-open item) and shipping the project's largest new UI surface since Phase 4 — held because a real safety-relevant gap (§5/§7/§11) was found *during* this same phase's own implementation, which is the right outcome of a good verification discipline but is still evidence the first design attempt at a compliance-adjacent feature was incomplete, not evidence of flawless execution. Held, not lowered, because the gap was caught and closed before shipping (unlike Phase 6's resolvedDate gap, which shipped for a full phase first), and because every claim in this review is independently checked against real generated output, not asserted from design intent.
+
+### 16. Code Quality Assessment
+Consistent with the project's established standard. `GraphCanvas.tsx`'s controlled-component design (renders what it's given, decides nothing) mirrors the same "thin presentation, all decisions upstream" discipline Mission Control's pages have followed since Phase 4. `safe-citation.ts`'s single-call-site design is a clean example of this project's "one generator-agnostic implementation point" pattern, now used twice (Phase 8's citation-building helpers, Phase 9's redaction layer) with the same shape.
+
+### 17. Maintainability Assessment
+High. A future contributor adding a 10th node type to the graph has an obvious, already-proven pattern (one query block in `buildGraph()`, one case in `getNodeDetail()`'s switch, one entry in the frontend's `NODE_COLORS`/`TYPE_COLORS` maps) to follow. The one real maintainability risk worth naming: the near-duplicate BFS in `path-discovery.ts`/`evidence-path.ts` (§9/§13) is a place a future edit could fix one and forget the other.
+
+### 18. Plugin Architecture Assessment
+Unaffected — no plugin-relevant code touched this phase. Plugin nodes/edges were added to the *graph visualization* of existing `plugin_registrations` data, not to the plugin runtime itself.
+
+### 19. Workspace Architecture Assessment
+Held and re-verified for a seventh consumer type (after scan, DB rows, API responses, vault files, plugin state, generated reports) — the Knowledge Graph, Path Discovery, Node Inspector, and Timeline Explorer were all built and tested against real Fatletic data with PrecisionWorkz available in the same session as a standing isolation check, consistent with every phase since 5.
+
+### 20. Readiness for the Next Phase
+Ready for Phase 10 (Platform Hardening & Release Readiness, renumbered — see `IMPLEMENTATION_PLAN.md`). With ADR-007 now closed, Phase 10's real remaining scope is genuinely smaller than originally framed: Security, Backup Strategy, and final Verification are what stand between the current codebase and a declared BrandOS v1.0 per `ROADMAP.md`'s Release Criteria. No newly-introduced blocker from this phase.
+
+---
+
+## Roadmap Reorganization — Version Milestones Replace Open-Ended Phase Numbering (2026-07-08)
+
+Not a phase — no application code, engine, or UI changed. Recorded here because it's a real, deliberate shift in how this project represents its own maturity, and this document's job is to track exactly that kind of change, not only code.
+
+### What changed
+`ROADMAP.md` was rewritten around two version milestones, **BrandOS v1.0** (a complete, local-first evidence platform — everything through Phase 9) and **BrandOS v2.0** (platform expansion: AI, visualization, cloud, collaboration, a public plugin ecosystem), replacing its prior structure of "completed phases 1–8, current phase 9, planned phases 10+." A formal **BrandOS v1 Release Criteria** checklist was added (14 criteria, 7 currently met). Phase 9 was renamed from "Security, Backups, Polish" to **"Platform Hardening & Release Readiness"** to reflect that it is not general cleanup — it is the specific, closed set of items standing between the current codebase and a declared v1.0. A **Platform Evolution** section formalizes, as an explicit stated principle rather than an incidental pattern, that future capability should arrive through plugins/importers/report templates/knowledge templates/AI modules/visualization modules/cloud modules — additions to the core, never redesigns of it. The Deferred Work section was restructured so every item states Status / Impact / Priority / Recommended Resolution, rather than prose of varying shape, and grew from 7 to 12 items (folding in items that were previously scattered across "Planned / Likely Future Work" and various phase reviews' own "carried forward" lists) so there is exactly one place tracking open work, not three.
+
+### Why this is the right structure now, not earlier
+An open-ended numbered-phase list (Phase 1, 2, 3, ... N) is the right structure while a project is still discovering its own shape — each phase can be whatever the next most useful increment turns out to be, and "what's Phase 12?" doesn't need an answer until Phase 11 is done. That was true for BrandOS through Phase 8: Phase 6 (Obsidian) was inserted ahead of the originally-planned Phase 6 (Importers) by explicit user direction; Phase 5 was trimmed live during scoping; the "Reports" phase moved from a plugin-based design (in the original pre-Phase-7 `IMPLEMENTATION_PLAN.md` draft) to a plain-registry design by direct instruction once Phase 8 actually started. None of that was a problem — it's what discovering a platform's real shape looks like, and it's honestly recorded across `IMPLEMENTATION_PLAN.md`'s own phase-renumbering notes.
+
+What changed is that BrandOS now has 20 of 24 v1.0-scope capabilities complete (see `ROADMAP.md`'s scope table) and a genuinely closed, nameable remainder (Security, Backup Strategy, ADR-007, final Verification — exactly Phase 9). At that point, "Phase 9, then presumably Phase 10, 11..." stops being an honest representation of the project's state: it implies more open-ended discovery remains when what actually remains is a short, closed checklist. A version-milestone structure says the true thing instead — v1.0 is a bounded, nameable target with a checklist, not the next stop on an indefinite numbered sequence — while v2.0 openly acknowledges that platform expansion is real, wanted, and intentionally *not* similarly bounded yet, since none of it has been scoped in the detail every v1.0 phase received.
+
+### What this does and doesn't change
+- Every existing phase number, date, and completion record is unchanged — this reorganizes how the roadmap is *presented*, not the historical record in `CHANGELOG.md`/`IMPLEMENTATION_PLAN.md`, which remain the authoritative phase-by-phase account.
+- No architectural decision changed. ADR-001 through ADR-012 all hold exactly as before; nothing about the workspace boundary, plugin contracts, import pipeline, or report engine was touched.
+- This does not commit the project to stopping at v1.0, nor to any specific v2.0 scope or order — v2.0's item list is deliberately presented as examples of platform expansion, not a committed roadmap of the same rigor as the v1.0 checklist.
+
+---
+
+## Phase 8 Review — Professional Reports & Evidence Binders (2026-07-08)
+
+### 1. Phase Summary
+The largest single-phase build in the project's history by file count (9 report generators, 4 renderers, a registry, a generator engine, a validation engine, 156 total tests) — approved in full after a scoping check, unlike Phases 5 and 7 which were trimmed. Every report is, by construction, a view over engines that already existed; no report-specific scoring formula was invented anywhere in the 9 generators.
+
+### 2. What Was Accomplished
+A `reports` table and guarded `WorkspaceFs.writeExport()` surface; a `ReportData`/`Citation`/`ReportSection` model shared by every report type and renderer; a report registry mapping 9 `ReportType`s to `ReportDefinition`s; a generator engine (compose → validate → render × 4 → write → persist) with deterministic, stable-stringify content hashing; a validation engine that mechanically enforces citation coverage and caught a real bug pattern across 6 of the 9 generators during development; 9 real report generators; `CaseBuilderService.linkReport()`, exercised live against a real Fatletic case; a `generate-report` CLI; and a real pre-existing evidence-engine bug (unbounded gap accumulation) found and fixed at the source.
+
+### 3. Architectural Decisions Made
+None new — see `ARCHITECTURE_DECISIONS.md` "Phase 8 Consistency Review." One deliberate, user-directed architecture choice recorded there rather than promoted to an ADR: reports are registry entries, not `ReportTemplate` plugins.
+
+### 4. Technical Debt Introduced
+- **A real, named gap against an existing ADR:** ADR-007 (sensitive filenames hash-referenced, never echoed verbatim, in generated legal/export documents) is not honored by any of the 9 reports — chain-of-custody and hash-reference sections print real filenames/paths directly. Not discovered after the fact; found and documented during this same phase's own consistency review, before being presented as complete.
+- None else net-new. The evidence-gap accumulation bug (§11) was found and fixed within this same phase, so it never became carried debt the way Phase 6's resolvedDate gap did across a full phase boundary.
+
+### 5. Risks Discovered
+- **The ADR-007 gap (§4) is the phase's most significant finding.** Fatletic's real evidence tree has filenames ADR-007's own context notes contain profanity/slurs — a report handed to an attorney today with a Hash References or Chain of Custody section could surface one of those filenames verbatim. This is a real, not hypothetical, risk given the actual data in this workspace, and it should block treating any Phase 8 report as attorney-ready until closed.
+- The report validation engine's citation-coverage check is structural (does every non-exempt section have ≥1 citation) but not semantic (it cannot detect a citation whose description doesn't actually match its body text) — a report generator could still technically satisfy validation while citing the wrong thing. No evidence this happened (every generator's citations were built from the same data the body text was built from, checked by direct code review), but it's a real category of error this validation layer cannot catch.
+
+### 6. Assumptions Validated
+- **"Reports must consume existing engines only" held under real pressure across all 9 report types**, including the two hardest cases: Priority of Use Dossier's "earliest by category" (correctly composed from QueryEngine + resolved-dates rather than reaching for the tempting-but-wrong `firstAssetByCategory()`) and Trademark Readiness's composite score (a plain average of 3 existing assessments, not a new formula).
+- **The "single data model, multiple renderers" design worked as intended** — all 4 output formats for all 9 report types were produced by exactly 3 renderer files (~250 lines total) with zero report-type-specific rendering code anywhere.
+- Multi-workspace isolation held for a sixth consumer type (§6 of Phase 7's review had it at five) — real reports generated against real PrecisionWorkz data with zero crashes and zero Fatletic-string leakage, checked by direct grep, not assumed.
+
+### 7. Assumptions Invalidated
+- The implicit assumption that `evidence_gaps` behaved like `resolved_dates` (delete-then-insert per re-assessment) was wrong — it was pure-append since Phase 3, invisible until a phase called `assessWorkspaceEvidence()` repeatedly enough in one session to make the duplication visible in real output. See §11.
+
+### 8. Performance Observations
+Not formally benchmarked (the now-five-consecutive-review gap, first named in Phase 5). Anecdotally: generating all 9 report types against real Fatletic data (199 assets, up to 633 citations in the largest report) completes well within interactive CLI timeframes; the 156-test suite runs in ~12 seconds.
+
+### 9. Opportunities for Refactoring
+- Close the ADR-007 gap (§4/§5) — the citation/hash-labeling scheme it specifies would slot cleanly into the existing `Citation` type (an additional `exhibitLabel` field, populated at render time) without touching any report generator's own logic.
+- Carried from Phase 7 §9: the pre-existing `classification-engine`/`DateSourceType` literal-leakage finding, and Phase 5's remaining 2 audit findings — both still untouched, both still low-urgency.
+
+### 10. Future Recommendations
+1. Close the ADR-007 gap before any Phase 8 report is used for its actual stated purpose (attorney review, trademark filing prep) — this is the one finding from this phase that has real-world consequence if skipped, not just architectural tidiness.
+2. Build export packages (ZIP bundles combining multiple reports/exhibits) as a distinct future capability — Phase 8 satisfies "generate one report in 4 formats," not "assemble a delivery package," and the two are legitimately different scopes.
+3. Get a real performance baseline once there's a concrete trigger — now recommended in five consecutive phase reviews without being done; this project should stop treating it as perpetually deferrable and either schedule it or explicitly decide it's not worth doing yet, rather than repeating the same unaddressed recommendation a sixth time.
+4. Consider a semantic citation-quality check (§5) as a future validation-engine enhancement, once there's a second report author (human or otherwise) whose mistakes would actually motivate it.
+
+### 11. Lessons Learned
+- **This is the third phase in a row (6, 7, 8) where building a new real consumer against existing engine data surfaced a genuine latent bug in that data's own maintenance discipline** (Phase 6: `getAssetIntelligence()` missing resolvedDate; Phase 7: `require()` vs. vitest; Phase 8: `evidence_gaps` never cleared). This is no longer a coincidence worth re-discovering each time — it's this project's most reliable bug-finding mechanism, more effective across three consecutive phases than any unit test written in isolation. Treating "build a second real consumer of existing data" as a deliberate verification strategy, not just an incidental side effect of feature work, is the single most important process lesson of the project so far.
+- Catching and fixing the evidence-gap bug within the same phase that exposed it (rather than documenting it as carried debt) was possible only because real-data verification happened *during* development, not just at the end — reinforcing, for the fourth time now, that "run it against real Fatletic/PrecisionWorkz data" belongs in the middle of a phase's work, not only as a final check.
+- A validation engine that's actually exercised against real generator bugs during its own construction (§9 of the Changelog entry) is worth more than one that only ever sees clean input — this validation engine's citation check would have looked identical on paper whether or not it ever caught anything; it happened to catch something real because it was run early and often, not because it was designed better than a version that wasn't.
+
+### 12. Questions for Future Phases
+- Should ADR-007's exhibit-labeling scheme be built as a report-generator-layer concern (each report decides when to show a real filename vs. an exhibit label) or a renderer-layer concern (renderers always substitute labels, generators never see the distinction)? Leaning toward renderer-layer, since it would apply uniformly without every future report generator needing to remember to do it — worth deciding explicitly before implementing, not defaulting to whichever is easier in the moment.
+- Now that `reports` and `case_links` connect for real, should Mission Control's Case Workspace page (Phase 4.5) surface linked reports the way it already surfaces linked assets? A natural, cheap dashboard extension once someone picks up dashboard work again.
+
+### 13. Potential Simplifications
+- None new. The report engine's file count is large, but each file is small and single-purpose (one report type, or one renderer, or one concern) — this is scope width, not accidental complexity.
+
+### 14. Potential Scalability Concerns
+Carried from Phase 6/7 (§14 of both): no report generator has a "changed since last generation" skip mechanism (§9 of the Changelog entry) — every generation call fully recomputes and rewrites. Fine for explicitly-triggered document generation at today's scale (sub-second for Fatletic's real 199 assets); would need reconsidering if reports were ever generated on an automatic schedule rather than on request.
+
+### 15. Overall Architecture Health Score: 8.5/10
+Held from Phase 7, not raised despite this being the largest and most thoroughly-tested phase yet, because of §4/§5's real finding: a report system that's architecturally excellent but doesn't yet honor an existing ADR governing exactly the kind of document it produces is a genuine, not cosmetic, gap. Held, not lowered, because the gap was found and documented by this phase's own review discipline rather than surfaced later by someone else, and because everything else this phase claims is backed by real, verified, cited evidence — including the phase's own limitations.
+
+### 16. Code Quality Assessment
+Consistent with the project's standard, at a larger scale than any prior phase has tested it against. The "single data model, multiple renderers" split held up cleanly — no renderer ever needed report-type-specific logic, no report generator ever needed to know about output format. The repeated citation-building bug (§11 of the Changelog) was caught by the validation engine precisely because report generators and the validation engine were built as genuinely independent checks on each other, not by the same pass of reasoning.
+
+### 17. Maintainability Assessment
+High. A tenth report type requires one registry entry and one generator file, per the design's own stated goal — verified structurally (the generator and renderers never branch on `ReportType`), not just claimed. The `report-helpers.ts` citation-building functions (`citeAsset`/`citeGap`/`citeIntegrityIssue`) are now the obvious place any future report generator should start, closing off the exact bug class §11 found before a tenth report type could reintroduce it.
+
+### 18. Plugin Architecture Assessment
+Unaffected by design — this phase deliberately did not route reports through Phase 7's plugin runtime (see `ARCHITECTURE_DECISIONS.md` Phase 8 Consistency Review). `ReportTemplate` remains contract-only, unchanged since Phase 1, still with no second real implementation to validate a loader against.
+
+### 19. Workspace Architecture Assessment
+Held and re-verified for a sixth consumer type (§6) — real report generation against both Fatletic and PrecisionWorkz in the same session, with cross-workspace leakage checked directly via grep against generated output, not inferred from architecture alone.
+
+### 20. Readiness for the Next Phase
+Ready for Phase 9, with one item that should be treated as a near-term priority rather than a routine carry-forward: the ADR-007 gap (§4/§5/§10.1) has real consequence for this specific workspace's real data and should be closed before Phase 8's reports are presented as legal-review-ready, independent of whatever Phase 9 itself ends up covering.
+
+---
+
+## Phase 7 Review — Import Framework & Plugin Runtime (2026-07-08)
+
+### 1. Phase Summary
+The phase that finally implements what ADR-002 described in Phase 1 and five subsequent phases correctly deferred: a real plugin loader, validated against real plugins rather than a guess. Explicitly trimmed by the user before implementation to "build what can be validated, document what cannot" — so this phase shipped a production-quality runtime and two fully real importers, alongside two honestly-incomplete plugins that register and activate correctly but throw a clear error instead of fabricating extraction logic for formats with no real sample data anywhere in this repository.
+
+### 2. What Was Accomplished
+A plugin runtime (`core/plugin-runtime/`: manifest schema, loader, compatibility checking, per-workspace activation, one error-isolation choke point every plugin call goes through); a shared import pipeline that `runScan()` itself now runs through (no parallel code path); the Generic Folder Importer (the reference implementation) and a fully working ZIP Archive Importer (real extraction, real zip-provenance citation paths, real idempotency); Instagram/Printful plugins that are real up to the exact boundary of needing data that doesn't exist yet; a permanent Golden Dataset regression baseline runnable both under vitest and standalone; `docs/PLUGIN_SDK.md`; 20 new tests (141 total).
+
+### 3. Architectural Decisions Made
+ADR-012 (dynamic `import()` over `require()` for plugin loading, forced by a real vitest module-resolution limitation discovered mid-phase) — see `ARCHITECTURE_DECISIONS.md` "Phase 7 Consistency Review" for the full account, including a correction: a review-time grep found this phase's "no plugin literal in Core" claim didn't hold for two pieces of pre-existing Phase 3 code, flagged honestly rather than smoothed over.
+
+### 4. Technical Debt Introduced
+- None new from this phase's own code. One piece of debt closed while already touching the relevant file (`watchWorkspace()`, Phase 5 audit finding #2, deleted after confirming zero call sites).
+- One piece of *pre-existing* debt newly surfaced, not introduced: `classification-engine/rules.ts`'s hardcoded `"instagram"`/`"printful"` path checks and `DateSourceType`'s `printful_order`/`instagram_publish` literals (both Phase 3) are a real, if minor, violation of ADR-002's "Core depends on a contract, never a specific plugin" rule. Left as a documented finding, not fixed here — fixing classification/date-source literals was not this phase's scope and doing it as a drive-by would risk under-testing a change to code this phase didn't otherwise touch.
+
+### 5. Risks Discovered
+- **The `require()`-under-vitest failure (§3) is a real, non-obvious environment trap** worth remembering explicitly: it doesn't fail at `tsc --noEmit` (types are fine), doesn't fail under `tsx` (works perfectly in the CLI), and only surfaces the moment a test exercises the loader — exactly the kind of gap that "typecheck plus manual CLI testing" alone would have shipped without ever catching. This is the fourth time this project's discipline of testing under every real runtime the code will actually execute under (not just the one most convenient to check) has paid off directly (after ADR-009's better-sqlite3 failure, ADR-011's Tauri failure, and Phase 6's resolvedDate gap).
+- **Newly named this phase:** a single-aggregator pattern (`getAssetIntelligence()`, flagged as a systemic risk in Phase 6 §5/§11) has a sibling risk in the plugin runtime — `loadPluginsForWorkspace()` is now the one place every future importer's activation logic flows through. Phase 6's lesson (check the aggregator whenever a new knowledge-layer system ships) generalizes here: check the loader whenever a new plugin *type* gains runtime support, not just when a new plugin instance is added.
+
+### 6. Assumptions Validated
+- **ADR-002's core bet — that a plugin loader could be built later without having guessed wrong about the contract shape in Phase 1 — held.** The `ImporterPlugin` interface defined in Phase 1's spec (`parse(sourcePath) -> {events, files, metadata}`) evolved into `discover(ctx, source) -> DiscoverResult` by Phase 7, a natural refinement rather than a rewrite, because the underlying idea (a plugin's only job is producing discoverable files; everything else is core pipeline) was right from the start.
+- **"No importer bypasses the pipeline" holds structurally, not just by discipline** — verified by construction: the `ImporterPlugin` contract has no method a plugin could use to write to the database directly, so there is no code path to audit for compliance; there is only one code path.
+- Multi-workspace isolation held for a fifth consumer type (after scan, DB rows, API responses, generated vault files, now plugin state) — real, not assumed: Fatletic shows all 4 plugins active, PrecisionWorkz correctly shows Instagram/Printful `disabled` with a specific per-flag reason.
+
+### 7. Assumptions Invalidated
+- The implicit assumption that `require()` would work the same way in every JS execution context this project uses (`tsx`, `vitest`, compiled `tsc` output) was wrong — see §5. Corrected via ADR-012 before it could ship as a latent test-environment-only gap.
+
+### 8. Performance Observations
+Not formally benchmarked (consistent with every prior phase's honest gap — no dedicated performance/load testing exists anywhere in this project yet, first named in the Phase 5 validation report). Anecdotally: the full 141-test suite runs in ~10 seconds; a real Fatletic scan through the new plugin-runtime-mediated path completes in well under a second more than the pre-Phase-7 code did (imperceptible, not measured precisely).
+
+### 9. Opportunities for Refactoring
+- The pre-existing `classification-engine`/`DateSourceType` literals (§4) are the clearest concrete item — not urgent, but now explicitly on the record rather than silently living outside ADR-002's stated rule.
+- Phase 5's remaining 2 audit findings (row-mapper duplication, 3 scaffolding directories) — still untouched, still low-urgency, still cheap.
+
+### 10. Future Recommendations
+1. Once real Instagram/Printful export data exists, implement the two plugins' `discover()` for real against real fixture data (per each plugin's own `BLOCKED.md`) rather than letting the stub state age indefinitely.
+2. Build the Obsidian Vault Status widget in Phase 8 or alongside it — the data (`obsidian_notes.has_manual_edits`) has existed since Phase 6, the plugin-health data this phase added is a close sibling, and both are genuinely dashboard work rather than knowledge-layer or import-framework work.
+3. Do the classification-engine/DateSourceType literal cleanup (§4/§9) as a small, focused pass rather than folding it into a larger feature phase where it would be easy to under-test.
+4. Get a real, non-anecdotal performance baseline once Phase 8's real importer data (once unblocked) grows the dataset past today's ~200-asset scale — this has now been recommended in four consecutive phase reviews (5, 6, 7, and implicitly 4.5) without being done; worth treating as genuinely due rather than perpetually deferrable.
+
+### 11. Lessons Learned
+- Trimming a large spec down to "build what can be validated, document what cannot" produced a phase that is smaller in scope but not smaller in rigor — the runtime, pipeline, and two real importers are held to the same production-quality bar the full spec asked for; only the two data-source-dependent plugins were scoped down, and only because no real data exists to validate them against. This is a reusable template for future large specs: cut scope along "what can be proven," not along "what's less work."
+- The `require()`/`import()` discovery (§3/§5/§7) reinforces a pattern now proven four separate times in this project: an environment/tooling assumption that seems safe because it works under one runtime (`tsx`) can fail silently under another (`vitest`) until a real test exercises it. "Typecheck plus one manual CLI run" is not sufficient verification for anything that touches module loading, process boundaries, or file I/O — this project's habit of also running the full test suite and a live CLI/API check after every meaningful change continues to be load-bearing, not ceremonial.
+- Writing this review's §6/§10 claim ("no plugin literal in Core") and then actually grepping to check it — rather than asserting it from memory of what was written this phase — caught a real, if minor, factual error before it entered the permanent record. Worth continuing as standing practice: verify a documentation claim the same way a code claim would be verified, especially claims about the *absence* of something, which are exactly the kind an author's own memory is worst at policing.
+
+### 12. Questions for Future Phases
+- Should there be an automated lint/grep check (perhaps a `tests/core/architecture-boundaries.test.ts`) that fails CI if `app/src/core/` ever gains a new brand-specific string literal, rather than relying on a manual grep during each phase's own review? Given this phase found a real, previously-unnoticed violation via manual grep, an automated version seems genuinely warranted now — a candidate for Phase 8 rather than purely aspirational.
+- Now that `plugin_health`/`plugin_health_events` exist, should Mission Control's existing Action Center (Phase 4.5) surface an unhealthy plugin as an action item, the same way it already surfaces review-queue and duplicate-group counts? Natural fit once the Vault Status widget work happens.
+
+### 13. Potential Simplifications
+- None new. The plugin contract and pipeline stage functions are already close to the minimum shape the "no importer bypasses the pipeline" guarantee requires.
+
+### 14. Potential Scalability Concerns
+Carried from Phase 6 §14 (vault generator iterates all entities per run) — the import pipeline has the same shape (iterates every discovered file per run, incremental-skip per file rather than a true delta-only discovery). Fine at today's scale; the same "get a real number once Phase 8's data grows the dataset" plan applies here too, not a new concern this phase introduced.
+
+### 15. Overall Architecture Health Score: 8.5/10
+Held from Phase 6. Held, not raised, despite this phase closing a five-phase-old deferred item (the plugin loader) cleanly and with real tests, because of two factors that keep this from being an unambiguous step up: the pre-existing Core literal-leakage finding (§4) is a real, if small, principle violation that had been sitting unnoticed since Phase 3, and the performance-baseline gap is now overdue across four consecutive reviews rather than merely noted. Held, not lowered, because both are honestly documented findings rather than hidden ones, and the phase's actual deliverables (runtime, pipeline, two real importers) are solid, tested, and verified against real data.
+
+### 16. Code Quality Assessment
+Consistent with the project's standard. The pipeline extraction from `import-engine.ts` was verified as a true mechanical reorganization, not a rewrite-in-disguise, by rerunning the full pre-existing test suite unchanged immediately after and confirming all 121 prior tests still passed before any new test was added. The `ImporterPlugin` contract is deliberately minimal — one required method — which is what makes "no importer bypasses the pipeline" a structural guarantee rather than an aspiration.
+
+### 17. Maintainability Assessment
+High for the new subsystem: a future importer author has the Generic Folder Importer (simplest) and ZIP Archive Importer (extraction + cleanup + provenance) as two worked examples spanning the real complexity range a third importer is likely to need. The one maintainability risk worth naming: `loadPluginsForWorkspace()` is now a second single-aggregation point (alongside `getAssetIntelligence()`) whose staleness would silently propagate to every plugin — see §5.
+
+### 18. Plugin Architecture Assessment
+**The most significant change of any review section since Phase 1.** Six phases (2 through 7) of correctly, patiently waiting for a second real plugin before building the loader ended this phase with four real manifests exercising the exact mechanism ADR-002 described — two proving the happy path (Generic Folder, ZIP Archive), two proving the honest-failure path (Instagram, Printful). This is meaningfully different from "the loader exists and passes tests with a toy plugin": it was validated against the actual planned first-party plugin set from `app/specs/19_PLUGIN_ARCHITECTURE.md`, including the two hardest cases (real external data formats that don't exist yet to build against).
+
+### 19. Workspace Architecture Assessment
+Held and re-verified for a fifth consumer type (§6) — plugin activation state joins scan results, DB rows, API responses, and generated vault files as a workspace-scoped fact proven, not assumed, to respect the workspace boundary.
+
+### 20. Readiness for the Next Phase
+Ready for Phase 8 (Case Builder Reports & Report Templates). No newly-introduced blocker. Two carried-forward items are now genuinely due rather than merely noted: a real performance baseline (four consecutive reviews) and the pre-existing Core literal-leakage finding (§4, new this phase but should not be allowed to age the way the performance gap has). Neither blocks starting Phase 8.
+
+---
+
+## Phase 6 Review — Knowledge Layer & Obsidian Integration (2026-07-08)
+
+### 1. Phase Summary
+The first phase whose deliverable is entirely a *view* over data every prior phase already built — no new facts, scores, or relationships were introduced; the vault generator only formats what the Knowledge Layer (Phase 3), Evidence Reliability system (Phase 3.5), and Asset Intelligence aggregator (Phase 3) already know. That framing was also this phase's biggest test: building a second real consumer of `getAssetIntelligence()` immediately exposed that the aggregator itself had a real gap.
+
+### 2. What Was Accomplished
+`obsidian_notes` tracking table; a guarded `WorkspaceFs.writeVaultFile()`/`readVaultFile()` write surface mirroring the existing `writeGenerated()` guard; delimited-block edit preservation resolving ADR-008's open question; a vault generator producing Asset/Case/Workspace notes plus 8 index pages (index-pages-not-duplicate-entities, so "Logo Evolution" and "Products" are filtered link lists, never a second copy of an Asset note); incremental regeneration via content-hash skip, proven at real scale; a Living Knowledge Review engine delegating reference-integrity checks to the existing `validateKnowledge()` engine; a CLI entry point; 10 new tests (121 total); real generation against both Fatletic (213 notes) and PrecisionWorkz (9 notes, isolated) — and, as a direct consequence of that real generation, discovery and fix of the `resolvedDate` gap in `getAssetIntelligence()` (see §4/§11).
+
+### 3. Architectural Decisions Made
+ADR-008 resolved (delimited-block over sibling-file) — see `ARCHITECTURE_DECISIONS.md` "Phase 6 Consistency Review." No other new ADRs; this phase built within ADR-001/002/005/009's existing boundaries.
+
+### 4. Technical Debt Introduced
+- None net-new by this phase's own code, but this phase found and closed a piece of *latent* debt that had existed silently since Phase 4.5: `getAssetIntelligence()` never surfaced `resolved_dates` (Phase 3.5's actual output), so both the new vault and the already-shipped Mission Control Asset Detail page had been showing raw, unfiltered — in Fatletic's case, epoch — timestamps as if they were fact. Fixed at the aggregator level, propagating correctly to both consumers with no template- or component-local patch. Zero new debt remains from this finding; it is fully closed, not deferred.
+- The Obsidian Vault Status dashboard widget (diff/merge surfacing for `has_manual_edits`) was explicitly scoped out of this phase (Phase 6 was knowledge-layer work, not Mission Control UI) and is now a named Phase 7 item rather than a silent gap — the data it would need (`obsidian_notes.has_manual_edits`) already exists.
+- Section 10's 100,000-note performance target was reasoned about architecturally (the hash-skip mechanism is the right shape) but not empirically load-tested — stated as an open item, not implied to be proven, per this phase's own "never invent facts" mandate applying equally to its own claims about itself.
+
+### 5. Risks Discovered
+- **The aggregator-gap pattern is the real finding of this phase, not just an incidental bug.** `getAssetIntelligence()` is explicitly the single composition point every consumer is supposed to call rather than re-querying (established Phase 3) — which is exactly why one field being stale silently propagated to two independent surfaces (dashboard, vault) built in two different phases by what were, functionally, two different pieces of work. The architecture's own strength (one aggregator, many consumers) is also its single point of failure for staleness: when the aggregator falls behind a newer engine capability, everything downstream inherits the gap invisibly. No test caught it because no test asserted on resolved-date *content*, only on resolved-date *existence* in isolation from the aggregator.
+- Confirms a pattern first named in Phase 5 §5 (foundation-built-without-a-caller having a real cost) in a new form: here the cost wasn't dead code, it was a *live* aggregator quietly falling out of sync with a sibling system (Phase 3.5) added after it. Worth a standing check: whenever a new knowledge-layer table/system ships, grep whether `getAssetIntelligence()` needs an update, rather than assuming its shape is permanently complete.
+
+### 6. Assumptions Validated
+- The "index pages, not duplicate entities" design held cleanly in practice — all 8 index pages generated correctly as filtered wikilink lists against real data (e.g. Logo Evolution via `query.assetsByTag("Logo")`), with zero duplicate Asset notes created.
+- Multi-workspace isolation held for a third consumer type (after DB rows in Phase 5, API responses in Phase 5): PrecisionWorkz's generated vault contains only its own workspace shell and empty indexes, never a Fatletic entity.
+- The delimited-block mechanism worked exactly as designed against a real hand-edit, not just a test fixture — verified live on `Assets/AST-00000114.md`: content below the marker survived regeneration untouched; a simulated edit inside the generated block was correctly detected and refused.
+
+### 7. Assumptions Invalidated
+- The implicit assumption that `getAssetIntelligence()` was a stable, complete contract once Phase 3 shipped it was wrong — it was complete *as of Phase 3*, and nothing re-checked it against Phase 3.5's later addition until this phase's real vault content made the gap visually obvious. Recorded here rather than only in §4/§5 because it's a genuine invalidated assumption, not just a bug.
+
+### 8. Performance Observations
+Not formally benchmarked at scale (§4). Anecdotally: full generation of Fatletic's 213 notes plus the Living Knowledge Review completes well within interactive CLI timeframes on real hardware; the 121-test suite (10 new tests this phase) continues to run in single-digit seconds. No regressions observed in existing engine query performance, since this phase added zero new query patterns — every vault note is built from calls to functions that already existed.
+
+### 9. Opportunities for Refactoring
+- Nothing new introduced by this phase's own code that needs refactoring; `note-templates.ts` was deliberately kept free of DB access specifically to avoid creating a refactor debt later.
+- Carried from Phase 5 §9: the 3 audit findings (row-mapper duplication, 2 dead functions, dead scaffolding directories) remain unresolved — this phase did not touch them, consistent with Phase 5's "Phase 6/7" recommendation now needing to point at Phase 7 instead, since this Phase 6 was inserted ahead of the originally-planned importer/plugin-loader phase.
+
+### 10. Future Recommendations
+1. Build the Obsidian Vault Status widget in Phase 7 (Mission Control now has a real data source for it: `obsidian_notes.has_manual_edits`) rather than letting the deferral compound the way the plugin loader's did.
+2. When Phase 7 adds real importer data (Instagram/Printful), re-run the vault generator against the larger, richer dataset it produces — this is a natural, real (not synthetic) opportunity to get an actual empirical read on generation performance at higher note/relationship counts, closing §4's open item without fabricating test data.
+3. Adopt a standing practice suggested by §5/§7: whenever a new knowledge-layer table or resolution system ships, explicitly check whether `getAssetIntelligence()` (or any other single-aggregator pattern) needs a corresponding update, rather than relying on a downstream consumer to eventually notice.
+
+### 11. Lessons Learned
+- Building a second real consumer against an existing aggregator is a legitimate, high-value way to pressure-test a "single source of truth" pattern — it did here what no amount of re-reading the Phase 3 code would have caught, because the bug was an *omission* (a field that was never added), not a visible error in code that existed.
+- This is the third time in the project's history (after Phase 3.5's epoch-date discovery, Phase 4.5's stringId/SQL-join bugs) that real end-to-end verification against live data caught something unit tests and typechecking both missed. The pattern is now well-established enough to treat as a required step after every phase, not a nice-to-have.
+- Fixing a cross-cutting bug at its actual source (the aggregator) rather than patching each downstream symptom (vault template, dashboard component) took the same amount of code and left zero duplicate fix logic — worth continuing as the default response whenever a bug is traced to a shared composition point.
+
+### 12. Questions for Future Phases
+- Should there be an automated check (a test, or a build-time assertion) that every field on `AssetIntelligenceView`/`AssetIntelligence` is actually rendered somewhere by at least one consumer, to catch the *next* aggregator-gap earlier than "someone happens to look at real generated output"? Worth considering once there's a third consumer to design the check against.
+- Now that a second Obsidian-adjacent capability (vault generation) has shipped without needing the plugin loader, is `vault-templates-brand-archive` (the plugin originally planned for this in the old Phase 8 placeholder) still needed as a plugin, or does the core generator's brand-agnostic template set already cover what a future non-Fatletic workspace would need? Leaning toward: revisit only if/when a second workspace's vault needs meaningfully different note structure, not preemptively.
+
+### 13. Potential Simplifications
+- None new. The generator's template functions are already about as simple as the "format, don't compute" constraint allows.
+
+### 14. Potential Scalability Concerns
+Carried from Phase 5 §14, now with one addition: the vault generator currently regenerates by iterating all active assets/cases on every run rather than only entities changed since the last generation — the content-hash skip makes each individual note-write cheap, but the iteration itself is still O(all entities) per run. Fine at Fatletic's 199-asset scale; worth revisiting if a workspace's asset count grows by orders of magnitude, per §10.2's plan to get a real empirical read once Phase 7's importers land.
+
+### 15. Overall Architecture Health Score: 8.5/10
+Held from Phase 5, not raised and not lowered. Held, not raised, because this phase's main event was finding and fixing a real gap in existing architecture rather than adding new proven strength — a genuinely good outcome, but a maintenance correction, not a net-new capability demonstration. Held, not lowered, because the fix was immediate, at the source, fully propagated, and verified — exactly what should happen when the architecture's own consistency checks (real-data verification) work as intended.
+
+### 16. Code Quality Assessment
+Consistent with the project's established standard: the generator's core primitive (`writeNote()`) is a single well-scoped function handling incremental-skip and edit-preservation together, not two overlapping code paths; templates are pure functions with no hidden state. The `resolvedDate` fix itself is minimal and precise — one field added to one interface, one query call added to one function, no surrounding code disturbed.
+
+### 17. Maintainability Assessment
+High. A future contributor adding a new note type (e.g. a Timeline-event note, if ever needed) has a clear, already-proven pattern to follow: a pure template function plus one `generateXNote()` orchestrator calling `writeNote()`. The aggregator-gap risk named in §5 is the one maintainability concern worth carrying forward as a standing practice, not a code-quality issue in what was actually written.
+
+### 18. Plugin Architecture Assessment
+Unchanged — still no plugin loader, still five phases running (2, 3, 4, 5, 6) of deferral, still correctly waiting for a second real plugin rather than being built speculatively. This phase deliberately did not force vault generation through the plugin system (no `VaultTemplate` plugin was built) since doing so before Phase 7's real importer plugins exist would mean designing the loader against a single example again — the same anti-pattern the loader has correctly avoided since Phase 2.
+- **`app/obsidian-temple/` is not the same directory as the git-tracked `app/obsidian-template/` this phase would use for a reusable template set** — that dead scaffolding directory (Phase 5 audit finding, misspelled) remains untouched and is now a candidate for deletion in Phase 7 given real vault generation exists and never used it.
+
+### 19. Workspace Architecture Assessment
+Held and re-verified for a fourth consumer type (after scan, DB rows, API responses, now generated files): every vault-generator function takes an explicit workspace context (`WorkspaceFs`, `WorkspaceDatabase`) with no shared state, and PrecisionWorkz's real, separate 9-note vault is direct proof, not just design intent.
+
+### 20. Readiness for the Next Phase
+Ready for Phase 7 (Importers, Fuller Relationships & Plugin Loader — reordered ahead of Reports per the original plan, since Phase 6 was inserted out of the originally-planned sequence at the user's explicit direction). One clear carry-forward: build the Vault Status widget alongside Phase 7's other Mission Control-adjacent work rather than letting it become a second multi-phase deferral like the plugin loader. The `getAssetIntelligence()` aggregator-gap pattern (§5/§11) is the single most important lesson to carry forward, more so than any specific code artifact from this phase.
+
+---
+
 ## Phase 5 Review — Platform Consolidation (2026-07-08)
 
 ### 1. Phase Summary
